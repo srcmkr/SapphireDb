@@ -5,16 +5,16 @@ using Microsoft.Extensions.Logging;
 
 namespace WebUI
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
             CreateWebHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args)
+        private static IWebHostBuilder CreateWebHostBuilder(string[] args)
         {
-            IConfigurationRoot config = new ConfigurationBuilder()
+            var config = new ConfigurationBuilder()
                 .AddCommandLine(args)
                 .Build();
 

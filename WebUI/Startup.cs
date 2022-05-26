@@ -12,36 +12,28 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SapphireDb.Extensions;
 using SapphireDb.Helper;
-using SapphireDb.HttpSync;
 using SapphireDb.Models;
-using SapphireDb.RedisSync;
-using SapphireDb.Sync.Http;
-using WebUI.Actions;
 using WebUI.Data;
 using WebUI.Data.Authentication;
-using WebUI.Data.DemoDb;
 
 namespace WebUI
 {
     public class Startup
     {
-        public IConfiguration Configuration { get; }
+        private IConfiguration Configuration { get; }
 
-        public IWebHostEnvironment Environment { get; }
-
-        public Startup(IConfiguration configuration, IWebHostEnvironment env)
+        public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            Environment = env;
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            SapphireDatabaseOptions options = new SapphireDatabaseOptions(Configuration.GetSection("Sapphire"));
+            var options = new SapphireDatabaseOptions(Configuration.GetSection("Sapphire"));
             // RedisSyncConfiguration redisSyncConfiguration = new RedisSyncConfiguration(Configuration.GetSection("RedisSync"));
             // HttpSyncConfiguration httpSyncConfiguration = new HttpSyncConfiguration(Configuration.GetSection("HttpSync"));
 
-            bool usePostgres = Configuration.GetValue<bool>("UsePostgres");
+            var usePostgres = Configuration.GetValue<bool>("UsePostgres");
 
             //Register services
             services.AddSapphireDb(options)
@@ -68,17 +60,17 @@ namespace WebUI
             /* Auth Demo */
             services.AddDbContext<IdentityDbContext<AppUser>>(cfg => cfg.UseFileContextDatabase(databaseName: "auth"));
 
-            services.AddIdentity<AppUser, IdentityRole>(options =>
+            services.AddIdentity<AppUser, IdentityRole>(identityOptions =>
             {
-                options.Password.RequireDigit = false;
-                options.Password.RequiredLength = 2;
-                options.Password.RequiredUniqueChars = 0;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequireUppercase = false;
+                identityOptions.Password.RequireDigit = false;
+                identityOptions.Password.RequiredLength = 2;
+                identityOptions.Password.RequiredUniqueChars = 0;
+                identityOptions.Password.RequireLowercase = false;
+                identityOptions.Password.RequireNonAlphanumeric = false;
+                identityOptions.Password.RequireUppercase = false;
             }).AddEntityFrameworkStores<IdentityDbContext<AppUser>>();
 
-            JwtOptions jwtOptions = new JwtOptions(Configuration.GetSection(nameof(JwtOptions)));
+            var jwtOptions = new JwtOptions(Configuration.GetSection(nameof(JwtOptions)));
             services.AddSingleton(jwtOptions);
             services.AddTransient<JwtIssuer>();
 
@@ -99,7 +91,7 @@ namespace WebUI
                     },
                     OnMessageReceived = ctx =>
                     {
-                        string authorizationToken = SapphireAuthenticationHelper.GetWebsocketAuthorizationHeader(ctx.Request);
+                        var authorizationToken = SapphireAuthenticationHelper.GetWebsocketAuthorizationHeader(ctx.Request);
                         if (!string.IsNullOrEmpty(authorizationToken))
                         {
                             ctx.Token = authorizationToken;
@@ -115,12 +107,13 @@ namespace WebUI
                 config.AddPolicy("requireAdmin", b => b.RequireRole("admin"));
                 config.AddPolicy("requireUser", b => b.RequireRole("user"));
             });
-
+            
             services.AddTransient<Seeder>();
+            
             services.AddCors();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Seeder seeder)
+        public static void Configure(IApplicationBuilder app, IWebHostEnvironment env, Seeder seeder)
         {
             seeder.Execute();
 
